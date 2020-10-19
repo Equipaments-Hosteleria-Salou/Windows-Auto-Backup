@@ -3,6 +3,7 @@
 $BackupFolder = "C:\COPIA_SEGURETAT"
 $tgData = "\\servidornou\dades\TGProfesional"
 $Destination = "$BackupFolder\COPIA_SEGURETAT_$(Get-Date -f dd_MM_yyyy)"
+
 echo "LA COPIA DE SEGURIDAD AUTOMATICA VA A EMPEZAR. NO CIERRES ESTA VENTANA"
 
 # Checks if the backup folder exists
@@ -22,6 +23,7 @@ else  # If the backup folder does not exist
     # Copy TG data to the backup folder
 	Copy-Item -Recurse -Path $tgData -Destination $Destination
 }
+
 echo "COPIA FINALIZADA"
 echo "PULSA CUALQUIER TECLA PARA SALIR"
 
