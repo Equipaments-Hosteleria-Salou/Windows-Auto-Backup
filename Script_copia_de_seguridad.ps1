@@ -28,7 +28,9 @@ $BackupFolder = "C:\__COPIES_SEGURETAT"
 $TGProfessionalData = "\\servidornou\dades\TGProfesional"
 $currentBackup = "COPIA_SEGURETAT_$(Get-Date -f dd_MM_yyyy).zip"
 
-echo "LA COPIA DE SEGURIDAD AUTOMATICA VA A EMPEZAR. NO CIERRES ESTA VENTANA"
+Clear-Host
+
+echo "LA COPIA DE SEGURIDAD AUTOMATICA VA A EMPEZAR. NO CIERRES ESTA VENTANA NI APAGUES EL EQUIPO."
 
 if (Test-Path -Path $BackupFolder -PathType Container)  # If the backups folder already exists
 {
@@ -36,7 +38,7 @@ if (Test-Path -Path $BackupFolder -PathType Container)  # If the backups folder 
     $backupList = Get-ChildItem -Path $BackupFolder
 
     # Perform backup. Use Copy-Item as starting command instead of directly use Compress-Archive because Compress-Archive cannot access a file that is already open, but Copy-item can.
-    Copy-Item -Path $TGProfessionalData -Force -PassThru | Get-ChildItem | Compress-Archive -DestinationPath $BackupFolder\$currentBackup -CompressionLevel Fastest -ErrorAction Continue
+    Copy-Item -Path $TGProfessionalData -Recurse -Force -PassThru -Verbose -Exclude "Thumbs.db" -ErrorAction Continue | Get-ChildItem | Compress-Archive -DestinationPath $BackupFolder\$currentBackup -CompressionLevel Fastest -ErrorAction Continue
 
     # Remove old back-ups after we have performed the current one
     foreach ($backup in $backupList) 
@@ -50,8 +52,11 @@ else  # If the backup folder does not exist it is the first backup copy...
     New-Item -ItemType Directory -Force -Path $BackupFolder
 
     # Perform backup
-    Copy-Item -Path $TGProfessionalData -Force -PassThru | Get-ChildItem | Compress-Archive -DestinationPath $BackupFolder\$currentBackup -CompressionLevel Fastest -ErrorAction Continue
+    Copy-Item -Path $TGProfessionalData -Recurse -Force -PassThru -Verbose -Exclude "Thumbs.db" -ErrorAction Continue | Get-ChildItem | Compress-Archive -DestinationPath $BackupFolder\$currentBackup -CompressionLevel Fastest -ErrorAction Continue
 }
+
+# Remove tmp files to generate the backup
+Remove-Item –path TGProfesional –recurse
 
 echo ""
 echo ""
