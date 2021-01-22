@@ -28,53 +28,66 @@
 #
 
 
-# Parameters and data declaration
-$BackupFolder = "C:\__COPIES_SEGURETAT"
-$TGProfessionalData = "\\servidornou\dades\TGProfesional"
+# Hard-coded parameters and data declaration
+$backupFolder = "C:\__COPIES_SEGURETAT"
+$TGProfessionalFolder = "TGProfesional"
+$TGProfessionalData = "\\servidornou\dades\"
+$MAX_BACKUPS = 10
 
 # Parameter reading
 $shutdown = $args[0]
 
 Clear-Host  # Clean screen
-echo "LA COPIA DE SEGURIDAD AUTOMATICA VA A EMPEZAR. NO CIERRES ESTA VENTANA NI APAGUES EL EQUIPO."
+echo "INICIANT LA TASCA DE LA COPIA DE SEGURETAT."
 
-# Generate backup name
-$currentBackup = "COPIA_SEGURETAT_$(Get-Date -f dd_MM_yyyy).zip"
-if (Test-Path -Path $BackupFolder -PathType Container)  # If the backups folder already exists
+# Generate current backup name
+$currentBackup = "COPIA_SEGURETAT_$(Get-Date -f mm_HH_dd_MM_yyyy)_.zip"
+
+if (Test-Path -Path $backupFolder -PathType Container)  # If the backups folder already exists
 {
-    # Obtain the names of the last backup for future removal after the backup is done
-    $backupList = Get-ChildItem -Path $BackupFolder
-
     # Perform backup. Use Copy-Item as starting command instead of directly use Compress-Archive because 
     # Compress-Archive cannot access a file that is already open, but Copy-item can.
-    Copy-Item -LiteralPath $TGProfessionalData -Destination $BackupFolder -Recurse -Force -Verbose -Exclude @('thumbs.bd','desktop.ini') -ErrorAction Continue 
+    Copy-Item -LiteralPath $TGProfessionalData + $TGProfessionalFolder -Destination $backupFolder -Recurse -Force -Verbose -Exclude @('thumbs.bd','desktop.ini') -ErrorAction Continue 
 
-    # Compress the just generated copied backup folder
-    Compress-Archive -Force -LiteralPath $( $BackupFolder + "\TGProfesional") -DestinationPath $BackupFolder\$currentBackup -CompressionLevel Fastest -ErrorAction Continue
+    # Compress the result of the copied backup folder
+    Compress-Archive -Force -LiteralPath $backupFolder + "\" + $TGProfessionalFolder -DestinationPath $backupFolder + "\" + $currentBackup -CompressionLevel Fastest -ErrorAction Continue
 
-    # Remove old back-ups and temporals after we have performed the current one
-    foreach ($backup in $backupList) 
+    echo "LA COPIA DE SEGURETAT HA ACABAT. "
+
+    # If there are more than $MAX_BACKUPS backups remove the older ones
+    $currentNumBackups = ( Get-ChildItem -Path $backupFolder -filter "*.zip" -Attributes !Directory | Measure-Object ).Count
+    if ( $currentNumBackups -gt $MAX_BACKUPS )
     {
-	    Remove-Item -Recurse -LiteralPath $backup.fullname 
+        echo "ARRIBAT AL MAXIM NOMBRE DE COPIES DE SEGURETAT. ES BORRARAN UNA O MES COPIES ANTIGUES."
+        $backupList = Get-ChildItem -Path $backupFolder -filter "*.zip" -Attributes !Directory | sort LastWriteTime -Descending | select name
+        while ( $currentNumBackups -gt $MAX_BACKUPS )
+        {
+            $currentNumBackups = $currentNumBackups - 1
+            Remove-Item  $backupFolder + "\" + $backupList[$currentNumBackups]
+            echo "COPIA " + $backupList[$currentNumBackups] + " ELIMINADA."
+        }
     }
 }
 else  # If the backup folder does not exist it is the first backup copy...
 {
     # Create backup folder
-    New-Item -ItemType Directory -Force -Path $BackupFolder
+    New-Item -ItemType Directory -Force -Path $backupFolder
 
     # Perform backup. Use Copy-Item as starting command instead of directly use Compress-Archive because 
     # Compress-Archive cannot access a file that is already open, but Copy-item can.
-    Copy-Item -LiteralPath $TGProfessionalData -Destination $BackupFolder -Recurse -Force -Verbose -Exclude @('thumbs.bd','desktop.ini') -ErrorAction Continue 
+    Copy-Item -LiteralPath $TGProfessionalData + $TGProfesionalFolder -Destination $backupFolder -Recurse -Force -Verbose -Exclude @('thumbs.bd','desktop.ini') -ErrorAction Continue 
 
     # Compress the just generated copied backup folder
-    Compress-Archive -Force -LiteralPath $( $BackupFolder + "\TGProfesional") -DestinationPath $BackupFolder\$currentBackup -CompressionLevel Fastest -ErrorAction Continue
+    Compress-Archive -Force -LiteralPath $backupFolder + "\" + $TGProfessionalFolder -DestinationPath $backupFolder + "\" + $currentBackup -CompressionLevel Fastest -ErrorAction Continue
 }
-# Remove backup folder
-Remove-Item -Recurse -Force -LiteralPath $( $BackupFolder + "\TGProfesional") -ErrorAction SilentlyContinue
+
+
+# Remove backup folder. Conserved as a comment since is a dangerous line
+# Remove-Item -Recurse -Force -LiteralPath $( $BackupFolder + "\TGProfesional") -ErrorAction SilentlyContinue
 
 if ($shutdown -eq $null)
 {
+    echo "AQUI EL PC ES PODRIA CONFIGURAR PER APAGARSE. APRETA QUALSEVOL TECLA PER SORTIR."
     #Stop-Computer -ComputerName "localhost" -Force
     Read-Host
 }
