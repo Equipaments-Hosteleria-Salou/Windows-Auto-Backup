@@ -31,26 +31,23 @@
 # Hard-coded parameters and data declaration
 $backupFolder = "C:\__COPIES_SEGURETAT"
 $TGProfessionalFolder = "TGProfesional"
-$TGProfessionalData = "\\servidornou\dades\"
+$TGProfessionalData = "\\servidornou\dades"
 $MAX_BACKUPS = 10
-
-# Parameter reading
-$shutdown = $args[0]
 
 Clear-Host  # Clean screen
 echo "INICIANT LA TASCA DE LA COPIA DE SEGURETAT."
 
 # Generate current backup name
-$currentBackup = "COPIA_SEGURETAT_$(Get-Date -f mm_HH_dd_MM_yyyy)_.zip"
+$currentBackup = "COPIA_SEGURETAT_$(Get-Date -f mm_HH_dd_MM_yyyy).zip"
 
 if (Test-Path -Path $backupFolder -PathType Container)  # If the backups folder already exists
 {
     # Perform backup. Use Copy-Item as starting command instead of directly use Compress-Archive because 
     # Compress-Archive cannot access a file that is already open, but Copy-item can.
-    Copy-Item -LiteralPath $TGProfessionalData + $TGProfessionalFolder -Destination $backupFolder -Recurse -Force -Verbose -Exclude @('thumbs.bd','desktop.ini') -ErrorAction Continue 
+    Copy-Item -LiteralPath "$TGProfessionalData\$TGProfessionalFolder" -Destination $backupFolder -Recurse -Force -Verbose -Exclude @('thumbs.bd','desktop.ini') -ErrorAction Continue 
 
     # Compress the result of the copied backup folder
-    Compress-Archive -Force -LiteralPath $backupFolder + "\" + $TGProfessionalFolder -DestinationPath $backupFolder + "\" + $currentBackup -CompressionLevel Fastest -ErrorAction Continue
+    Compress-Archive -Force -LiteralPath "$backupFolder\$TGProfessionalFolder" -DestinationPath "$backupFolder\$currentBackup" -CompressionLevel Fastest -ErrorAction Continue
 
     echo "LA COPIA DE SEGURETAT HA ACABAT. "
 
@@ -63,8 +60,8 @@ if (Test-Path -Path $backupFolder -PathType Container)  # If the backups folder 
         while ( $currentNumBackups -gt $MAX_BACKUPS )
         {
             $currentNumBackups = $currentNumBackups - 1
-            Remove-Item  $backupFolder + "\" + $backupList[$currentNumBackups]
-            echo "COPIA " + $backupList[$currentNumBackups] + " ELIMINADA."
+            Remove-Item  "$backupFolder\$backupList[$currentNumBackups]"
+            echo "COPIA $backupList[$currentNumBackups] ELIMINADA."
         }
     }
 }
@@ -75,26 +72,18 @@ else  # If the backup folder does not exist it is the first backup copy...
 
     # Perform backup. Use Copy-Item as starting command instead of directly use Compress-Archive because 
     # Compress-Archive cannot access a file that is already open, but Copy-item can.
-    Copy-Item -LiteralPath $TGProfessionalData + $TGProfesionalFolder -Destination $backupFolder -Recurse -Force -Verbose -Exclude @('thumbs.bd','desktop.ini') -ErrorAction Continue 
+    Copy-Item -LiteralPath "$TGProfessionalData\$TGProfesionalFolder" -Destination $backupFolder -Recurse -Force -Verbose -Exclude @('thumbs.bd','desktop.ini') -ErrorAction Continue 
 
     # Compress the just generated copied backup folder
-    Compress-Archive -Force -LiteralPath $backupFolder + "\" + $TGProfessionalFolder -DestinationPath $backupFolder + "\" + $currentBackup -CompressionLevel Fastest -ErrorAction Continue
+    Compress-Archive -Force -LiteralPath "$backupFolder\$TGProfessionalFolder" -DestinationPath "$backupFolder\$currentBackup" -CompressionLevel Fastest -ErrorAction Continue
 }
 
-
-# Remove backup folder. Conserved as a comment since is a dangerous line
-# Remove-Item -Recurse -Force -LiteralPath $( $BackupFolder + "\TGProfesional") -ErrorAction SilentlyContinue
-
-if ($shutdown -eq $null)
+# Shutdown and make a local copy in the desktop in Jordi's desktop
+if (Test-Path "C:\Users\Jordi\Desktop")
 {
-    echo "AQUI EL PC ES PODRIA CONFIGURAR PER APAGARSE. APRETA QUALSEVOL TECLA PER SORTIR."
-    #Stop-Computer -ComputerName "localhost" -Force
-    Read-Host
-}
-else
-{
-    # Special line for one of the scripts, to have a copy in the desktop
-    Copy-Item -LiteralPath $BackupFolder\$currentBackup -Destination "C:\Users\Jordi\Desktop" -Force -ErrorAction Continue 
+    Copy-Item -LiteralPath "$BackupFolder\$currentBackup" -Destination "C:\Users\Jordi\Desktop" -Force -ErrorAction Continue 
     Read-Host
 }
 
+echo "AQUI EL PC ES PODRIA CONFIGURAR PER APAGARSE. APRETA QUALSEVOL TECLA PER SORTIR."
+Stop-Computer -ComputerName "localhost" -Force
