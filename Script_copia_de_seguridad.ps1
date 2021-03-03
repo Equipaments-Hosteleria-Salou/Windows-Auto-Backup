@@ -38,7 +38,7 @@ Clear-Host  # Clean screen
 echo "INICIANT LA TASCA DE LA COPIA DE SEGURETAT."
 
 # Generate current backup name
-$currentBackup = "COPIA_SEGURETAT_$(Get-Date -f mm_HH_dd_MM_yyyy).zip"
+$currentBackup = "COPIA_SEGURETAT_$(Get-Date -f HH_mm__dd_MM_yyyy).zip"
 
 if (Test-Path -Path $backupFolder -PathType Container)  # If the backups folder already exists
 {
