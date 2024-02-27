@@ -33,6 +33,8 @@ $backupFolder = "C:\__COPIES_SEGURETAT"
 $TGProfessionalFolder = "TGProfesional"
 $TGProfessionalData = "\\Desktop-i6d543d"
 $MAX_BACKUPS = 10
+$ask = 0
+$shutdown = 1
 
 Clear-Host  # Clean screen
 echo "Iniciant tasca de copia de seguretat."
@@ -42,50 +44,56 @@ $currentBackup = "COPIA_SEGURETAT_$(Get-Date -f HH_mm__dd_MM_yyyy).zip"
 
 if (Test-Path -Path $backupFolder -PathType Container)  # If the backups folder already exists
 {
-    # Perform backup. Use Copy-Item as starting command instead of directly use Compress-Archive because 
-    # Compress-Archive cannot access a file that is already open, but Copy-item can.
-    Copy-Item -LiteralPath "$TGProfessionalData\$TGProfessionalFolder" -Destination $backupFolder -Recurse -Force -Verbose -Exclude @('thumbs.bd','desktop.ini') -ErrorAction Continue 
-
-    echo "Ja ha finalitzat la copia de la carpeta TGProfesional del servidor al sistema de fitxers local. Començant compressió."
-
-    # Compress the result of the copied backup folder
-    Compress-Archive -Force -LiteralPath "$backupFolder\$TGProfessionalFolder" -DestinationPath "$backupFolder\$currentBackup" -CompressionLevel Fastest -ErrorAction Continue
-
-    echo "La compressió ha finalitzat. Copia de seguretat. "
-
-    # If there are more than $MAX_BACKUPS backups remove the older ones
-    $currentNumBackups = ( Get-ChildItem -Path $backupFolder -filter "*.zip" -Attributes !Directory | Measure-Object ).Count
-    if ( $currentNumBackups -gt $MAX_BACKUPS )
-    {
-        echo "ARRIBAT AL MAXIM NOMBRE DE COPIES DE SEGURETAT. ES BORRARAN UNA O MES COPIES ANTIGUES."
-        $backupList = Get-ChildItem -Path $backupFolder -filter "*.zip" -Attributes !Directory | sort LastWriteTime -Descending | select name
-        while ( $currentNumBackups -gt $MAX_BACKUPS )
-        {
-            $currentNumBackups = $currentNumBackups - 1
-            Remove-Item  "$backupFolder\$backupList[$currentNumBackups]"
-            echo "COPIA $backupList[$currentNumBackups] ELIMINADA."
-        }
-    }
+    echo
 }
 else  # If the backup folder does not exist it is the first backup copy...
 {
+    echo "Primera copia de seguretat. Inicialitzant la carpeta $backupFolder."
+
     # Create backup folder
     New-Item -ItemType Directory -Force -Path $backupFolder
+}
 
-    # Perform backup. Use Copy-Item as starting command instead of directly use Compress-Archive because 
-    # Compress-Archive cannot access a file that is already open, but Copy-item can.
-    Copy-Item -LiteralPath "$TGProfessionalData\$TGProfesionalFolder" -Destination $backupFolder -Recurse -Force -Verbose -Exclude @('thumbs.bd','desktop.ini') -ErrorAction Continue 
+# Perform backup. Use Copy-Item as starting command instead of directly use Compress-Archive because 
+# Compress-Archive cannot access a file that is already open, but Copy-item can.
+Copy-Item -LiteralPath "$TGProfessionalData\$TGProfessionalFolder" -Destination $backupFolder -Recurse -Force -Verbose -Exclude @('thumbs.bd','desktop.ini') -ErrorAction Continue 
 
-    # Compress the just generated copied backup folder
-    Compress-Archive -Force -LiteralPath "$backupFolder\$TGProfessionalFolder" -DestinationPath "$backupFolder\$currentBackup" -CompressionLevel Fastest -ErrorAction Continue
+echo "Ja ha finalitzat la copia de la carpeta TGProfesional del servidor al sistema de fitxers local. Començant compressió."
+
+# Compress the result of the copied backup folder
+Compress-Archive -Force -LiteralPath "$backupFolder\$TGProfessionalFolder" -DestinationPath "$backupFolder\$currentBackup" -CompressionLevel Fastest -ErrorAction Continue
+
+echo "La compressió ha finalitzat. La copia de seguretat es troba a $backupFolder\$currentBackup"
+
+# If there are more than $MAX_BACKUPS backups remove the older ones
+$currentNumBackups = ( Get-ChildItem -Path $backupFolder -filter "*.zip" -Attributes !Directory | Measure-Object ).Count
+if ( $currentNumBackups -gt $MAX_BACKUPS )
+{
+    echo "S'ha arribat al màxim nombre de còpies de seguretat ($MAX_BACKUPS). Es borraran les còpies més antigues."
+    $backupList = Get-ChildItem -Path $backupFolder -filter "*.zip" -Attributes !Directory | sort LastWriteTime -Descending | select name
+    while ( $currentNumBackups -gt $MAX_BACKUPS )
+    {
+        $currentNumBackups = $currentNumBackups - 1
+        Remove-Item  "$backupFolder\$backupList[$currentNumBackups]"
+        echo "S'ha borrat la copia  $backupFolder\$backupList[$currentNumBackups]."
+    }
 }
 
 # Shutdown and make a local copy in the desktop in Jordi's desktop
 if (Test-Path "C:\Users\Jordi\Desktop")
 {
     Copy-Item -LiteralPath "$BackupFolder\$currentBackup" -Destination "C:\Users\Jordi\Desktop" -Force -ErrorAction Continue 
-    Read-Host
+
 }
 
-echo "AQUI EL PC ES PODRIA CONFIGURAR PER APAGARSE. APRETA QUALSEVOL TECLA PER SORTIR."
-Stop-Computer -ComputerName "localhost" -Force
+# Shutdown after operation
+if ( $shutdown -eq 1)
+{
+    # Need user interaction to shutdown
+    if ( $ask -eq 1 )
+    {
+        echo "Prem qualsevol tecla per apagar l'ordinador."
+        Read-Host
+    }
+    Stop-Computer -ComputerName "localhost" -Force
+}
