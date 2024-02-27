@@ -44,7 +44,7 @@ $currentBackup = "COPIA_SEGURETAT_$(Get-Date -f HH_mm__dd_MM_yyyy).zip"
 
 if (Test-Path -Path $backupFolder -PathType Container)  # If the backups folder already exists
 {
-    echo
+    echo "No es la primera copia de seguretat"
 }
 else  # If the backup folder does not exist it is the first backup copy...
 {
@@ -52,6 +52,13 @@ else  # If the backup folder does not exist it is the first backup copy...
 
     # Create backup folder
     New-Item -ItemType Directory -Force -Path $backupFolder
+}
+
+# Clean TGProfesional folder if present before making the copy
+if (Test-Path -Path "$backupFolder\$TGProfessionalFolder" -PathType Container)
+{
+    echo "Borrant carpeta $backupFolder\$TGProfessionalFolder abans de fer la còpia."
+    Remove-Item -Path "$backupFolder\$TGProfessionalFolder" -Recurse
 }
 
 # Perform backup. Use Copy-Item as starting command instead of directly use Compress-Archive because 
@@ -79,11 +86,14 @@ if ( $currentNumBackups -gt $MAX_BACKUPS )
     }
 }
 
+# Remove TGProfesional folder for the copy
+echo "Borrant carpeta $backupFolder\$TGProfessionalFolder després de la còpia."
+Remove-Item -Path "$backupFolder\$TGProfessionalFolder" -Recurse
+
 # Shutdown and make a local copy in the desktop in Jordi's desktop
 if (Test-Path "C:\Users\Jordi\Desktop")
 {
     Copy-Item -LiteralPath "$BackupFolder\$currentBackup" -Destination "C:\Users\Jordi\Desktop" -Force -ErrorAction Continue 
-
 }
 
 # Shutdown after operation
