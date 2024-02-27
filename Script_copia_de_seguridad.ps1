@@ -31,11 +31,11 @@
 # Hard-coded parameters and data declaration
 $backupFolder = "C:\__COPIES_SEGURETAT"
 $TGProfessionalFolder = "TGProfesional"
-$TGProfessionalData = "\\servidornou\dades"
+$TGProfessionalData = "\\Desktop-i6d543d"
 $MAX_BACKUPS = 10
 
 Clear-Host  # Clean screen
-echo "INICIANT LA TASCA DE LA COPIA DE SEGURETAT."
+echo "Iniciant tasca de copia de seguretat."
 
 # Generate current backup name
 $currentBackup = "COPIA_SEGURETAT_$(Get-Date -f HH_mm__dd_MM_yyyy).zip"
@@ -46,10 +46,12 @@ if (Test-Path -Path $backupFolder -PathType Container)  # If the backups folder 
     # Compress-Archive cannot access a file that is already open, but Copy-item can.
     Copy-Item -LiteralPath "$TGProfessionalData\$TGProfessionalFolder" -Destination $backupFolder -Recurse -Force -Verbose -Exclude @('thumbs.bd','desktop.ini') -ErrorAction Continue 
 
+    echo "Ja ha finalitzat la copia de la carpeta TGProfesional del servidor al sistema de fitxers local. Començant compressió."
+
     # Compress the result of the copied backup folder
     Compress-Archive -Force -LiteralPath "$backupFolder\$TGProfessionalFolder" -DestinationPath "$backupFolder\$currentBackup" -CompressionLevel Fastest -ErrorAction Continue
 
-    echo "LA COPIA DE SEGURETAT HA ACABAT. "
+    echo "La compressió ha finalitzat. Copia de seguretat. "
 
     # If there are more than $MAX_BACKUPS backups remove the older ones
     $currentNumBackups = ( Get-ChildItem -Path $backupFolder -filter "*.zip" -Attributes !Directory | Measure-Object ).Count
